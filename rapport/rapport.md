@@ -24,7 +24,7 @@ L'objectif du projet est donc de remplacer ce fonctionnement par une infrastruct
 
 J'ai volontairement suivi le conseil donné à la fin du sujet : ne pas chercher à faire une usine à gaz, mais une solution simple, cohérente et entièrement automatisée. Tout ce qui suit peut être recréé de zéro avec deux commandes (`terraform apply` puis `ansible-playbook`), ce qui est exactement ce qui manquait dans la situation de départ.
 
-L'infrastructure est déployée en local sur un hôte **KVM/libvirt**, qui était l'option la plus accessible pour moi puisque je l'utilise déjà dans mes TPs, et qui est 100 % open source comme recommandé dans le sujet.
+L'infrastructure est conçue pour être déployée sur un hôte **KVM/libvirt**, conformément aux plateformes recommandées par le sujet et 100 % open source. Travaillant depuis un poste Windows, j'ai découvert cet écosystème spécifiquement pour ce projet ; je reviens en détail sur les conséquences pratiques de ce choix dans la section « Limites de la solution ».
 
 # Présentation de l'architecture
 
@@ -44,7 +44,7 @@ J'ai choisi de séparer les trois rôles sur trois VMs distinctes plutôt que de
 
 ## Hyperviseur et réseau
 
-L'hôte est une machine Linux faisant tourner **KVM** avec **libvirt** comme couche de gestion. Les trois VMs partagent un réseau privé virtuel en mode **NAT**, sur le sous-réseau `10.10.0.0/24` :
+L'hôte cible est une machine Linux faisant tourner **KVM** avec **libvirt** comme couche de gestion. Les trois VMs partagent un réseau privé virtuel en mode **NAT**, sur le sous-réseau `10.10.0.0/24` :
 
 | VM            | Rôle           | Adresse IP    | Ports exposés        |
 |---------------|----------------|---------------|----------------------|
@@ -146,11 +146,17 @@ volumes:
 
 NGINX tourne aussi en conteneur, avec sa configuration et les certificats montés en *read-only* depuis l'hôte. La conf redirige le HTTP vers le HTTPS et fait suivre vers l'application.
 
+## Validation de la chaîne applicative
+
+Pour vérifier concrètement que l'enchaînement NGINX → Flask → PostgreSQL fonctionne, j'ai rejoué l'architecture applicative avec un `docker-compose.local.yml` combinant les 3 services sur une seule machine (les services se joignant par leur nom plutôt que par IP, le reste de la configuration étant identique à celle déployée par Ansible). Les 3 conteneurs démarrent et passent à l'état `healthy`/`Up`, et l'application répond correctement en incrémentant le compteur de visites à chaque requête, preuve que l'écriture et la lecture en base fonctionnent :
+
+![Validation locale de la chaîne proxy → app → base](../captures/test-local-docker.png)
+
 # Analyse et justification des choix techniques
 
 ## Choix des technologies
 
-- **KVM/libvirt** : open source, déjà maîtrisé en TP, et léger à faire tourner en local. Proxmox aurait apporté une jolie interface mais beaucoup plus lourde pour un projet de cette taille.
+- **KVM/libvirt** : open source et léger à faire tourner, conforme aux plateformes recommandées par le sujet. Proxmox aurait apporté une jolie interface mais beaucoup plus lourde pour un projet de cette taille.
 - **Terraform** : c'est l'outil IaC standard et le sujet le demande explicitement. Le provider libvirt permet de tout décrire sans toucher à `virsh` à la main. *(OpenTofu, le fork open source, fonctionnerait à l'identique avec le même code.)*
 - **Ansible** : sans agent (juste du SSH), lisible en YAML, et idempotent. C'était le complément logique de Terraform pour la partie configuration.
 - **Docker / Compose** : la conteneurisation demandée. Compose suffit largement ici ; Kubernetes aurait été surdimensionné pour trois conteneurs sur trois VMs.
@@ -168,6 +174,7 @@ Avant ce projet, j'aurais installé tout ça à la main. Là, l'infra complète 
 
 Je préfère être honnête sur ce qui n'est pas parfait :
 
+- **Provisioning des VM non testé en conditions réelles** : depuis mon poste Windows, je n'ai pas pu activer de façon fiable la virtualisation imbriquée nécessaire pour faire tourner KVM/libvirt dans une VM locale (conflit avec l'hyperviseur Windows). Le code Terraform/Ansible est donc validé par relecture mais n'a pas été exécuté de bout en bout sur ce poste. En contrepartie, j'ai validé la chaîne applicative complète (NGINX, Flask, PostgreSQL) en local via Docker Compose, ce qui couvre la partie conteneurisation mais pas le provisioning des machines virtuelles elles-mêmes.
 - **Pas de haute disponibilité réelle** : chaque service est en un seul exemplaire. Si la VM de la base tombe, l'appli tombe avec.
 - **Mot de passe de la base en clair** dans les variables Ansible. En vrai il faudrait passer par **Ansible Vault** ; je l'ai laissé en clair pour la lisibilité de la démo.
 - **Certificat auto-signé** : le HTTPS fonctionne mais le navigateur affiche un avertissement, puisqu'aucune autorité reconnue ne l'a signé.
@@ -175,7 +182,7 @@ Je préfère être honnête sur ce qui n'est pas parfait :
 
 # Conclusion
 
-Ce projet m'a permis de relier des briques que j'avais vues séparément en cours : virtualisation, IaC, configuration automatisée et conteneurs. Le résultat est une infrastructure que je peux détruire et reconstruire à l'identique en quelques minutes, ce qui répond directement au problème de départ — une installation manuelle et non reproductible.
+Ce projet m'a permis de relier des briques que j'avais vues séparément en cours : virtualisation, IaC, configuration automatisée et conteneurs. Le résultat est une infrastructure pensée pour être détruite et reconstruite à l'identique en quelques minutes, ce qui répond directement au problème de départ — une installation manuelle et non reproductible. La partie conteneurisation a été validée concrètement ; la partie provisioning des VM reste, pour les raisons expliquées plus haut, validée par relecture du code plutôt que par exécution complète sur mon poste.
 
 Si je devais aller plus loin, je commencerais par les points de la section « limites » : sécuriser les secrets avec Ansible Vault, ajouter une sauvegarde planifiée de PostgreSQL, puis seulement ensuite réfléchir à de la haute disponibilité. Mais conformément au conseil du sujet, j'ai préféré livrer une base simple, cohérente et entièrement automatisée plutôt qu'une architecture ambitieuse et bancale.
 
@@ -198,13 +205,20 @@ ansible-playbook site.yml
 #   https://10.10.0.10/   (certificat auto-signé : accepter l'avertissement)
 ```
 
+Variante de validation locale (sans VM), utilisée pour vérifier la chaîne applicative :
+```bash
+docker compose -f docker-compose.local.yml up -d --build
+# puis ouvrir http://localhost:8080
+```
+
 L'arborescence complète du dépôt :
 
 ```
 projet-cloud-computing/
-├── terraform/      # IaC : VMs, réseau, cloud-init
-├── ansible/        # provisioning : 4 rôles (common, database, app, reverse_proxy)
-├── app/            # application Flask + Dockerfile
-├── schema/         # schéma d'architecture
-└── rapport/        # ce rapport (source Markdown + PDF)
+├── terraform/              # IaC : VMs, réseau, cloud-init
+├── ansible/                # provisioning : 4 rôles (common, database, app, reverse_proxy)
+├── app/                    # application Flask + Dockerfile
+├── schema/                 # schéma d'architecture
+├── docker-compose.local.yml # validation locale de la chaîne applicative
+└── rapport/                # ce rapport (source Markdown + PDF)
 ```
