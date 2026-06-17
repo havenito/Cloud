@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="720" viewBox="0 0 1100 720" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .bg     { fill:#1b1230; }
+      .host   { fill:#241640; stroke:#6b46c1; stroke-width:2; rx:14; }
+      .vm     { fill:#2a1d4a; stroke:#9f7aea; stroke-width:2; rx:12; }
+      .ctn    { fill:#3a2a63; stroke:#b794f6; stroke-width:1.5; rx:8; }
+      .title  { fill:#ffffff; font-size:26px; font-weight:700; }
+      .sub    { fill:#b794f6; font-size:15px; font-weight:600; }
+      .vmname { fill:#ffffff; font-size:18px; font-weight:700; }
+      .ip     { fill:#c9b8f0; font-size:13px; font-family:monospace; }
+      .label  { fill:#e6dcff; font-size:14px; }
+      .small  { fill:#9d8ec2; font-size:12px; }
+      .flow   { stroke:#b794f6; stroke-width:2.5; fill:none; marker-end:url(#arrow); }
+      .tool   { fill:#150c26; stroke:#6b46c1; stroke-width:1.5; rx:8; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#b794f6"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1100" height="720"/>
+  <text class="title" x="40" y="50">Architecture – Déploiement automatisé d'une appli web conteneurisée</text>
+  <text class="sub" x="40" y="76">Hyperviseur KVM/libvirt · IaC Terraform · Provisioning Ansible · Conteneurs Docker</text>
+
+  <!-- Client -->
+  <rect class="ctn" x="40" y="300" width="130" height="70"/>
+  <text class="label" x="105" y="332" text-anchor="middle">Client</text>
+  <text class="small" x="105" y="352" text-anchor="middle">navigateur HTTP/S</text>
+
+  <!-- Host / hypervisor box -->
+  <rect class="host" x="210" y="110" width="850" height="470" rx="14"/>
+  <text class="sub" x="232" y="138">Hôte physique – KVM / libvirt — réseau privé NAT 10.10.0.0/24</text>
+
+  <!-- VM1 reverse proxy -->
+  <rect class="vm" x="240" y="170" width="220" height="170" rx="12"/>
+  <text class="vmname" x="350" y="198" text-anchor="middle">VM1 · reverse-proxy</text>
+  <text class="ip" x="350" y="218" text-anchor="middle">10.10.0.10</text>
+  <rect class="ctn" x="265" y="235" width="170" height="80" rx="8"/>
+  <text class="label" x="350" y="265" text-anchor="middle">NGINX</text>
+  <text class="small" x="350" y="285" text-anchor="middle">:80 → 301 → :443</text>
+  <text class="small" x="350" y="302" text-anchor="middle">TLS auto-signé</text>
+
+  <!-- VM2 app -->
+  <rect class="vm" x="540" y="170" width="220" height="170" rx="12"/>
+  <text class="vmname" x="650" y="198" text-anchor="middle">VM2 · app</text>
+  <text class="ip" x="650" y="218" text-anchor="middle">10.10.0.20</text>
+  <rect class="ctn" x="565" y="235" width="170" height="80" rx="8"/>
+  <text class="label" x="650" y="265" text-anchor="middle">Flask + Gunicorn</text>
+  <text class="small" x="650" y="285" text-anchor="middle">conteneur Docker</text>
+  <text class="small" x="650" y="302" text-anchor="middle">:8000</text>
+
+  <!-- VM3 db -->
+  <rect class="vm" x="840" y="170" width="195" height="170" rx="12"/>
+  <text class="vmname" x="937" y="198" text-anchor="middle">VM3 · db</text>
+  <text class="ip" x="937" y="218" text-anchor="middle">10.10.0.30</text>
+  <rect class="ctn" x="862" y="235" width="150" height="80" rx="8"/>
+  <text class="label" x="937" y="265" text-anchor="middle">PostgreSQL 16</text>
+  <text class="small" x="937" y="285" text-anchor="middle">conteneur Docker</text>
+  <text class="small" x="937" y="302" text-anchor="middle">:5432 + volume</text>
+
+  <!-- Flows -->
+  <path class="flow" d="M170,335 L238,275"/>
+  <text class="small" x="185" y="300">HTTPS</text>
+  <path class="flow" d="M460,255 L538,255"/>
+  <text class="small" x="468" y="245">:8000</text>
+  <path class="flow" d="M760,255 L838,255"/>
+  <text class="small" x="768" y="245">:5432</text>
+
+  <!-- Toolchain band -->
+  <rect class="tool" x="240" y="400" width="250" height="150" rx="8"/>
+  <text class="sub" x="365" y="428" text-anchor="middle">Terraform / OpenTofu</text>
+  <text class="small" x="365" y="452" text-anchor="middle">crée les 3 VMs, disques,</text>
+  <text class="small" x="365" y="470" text-anchor="middle">réseau NAT et cloud-init</text>
+  <text class="small" x="365" y="494" text-anchor="middle">→ infrastructure reproductible</text>
+
+  <rect class="tool" x="510" y="400" width="250" height="150" rx="8"/>
+  <text class="sub" x="635" y="428" text-anchor="middle">Ansible</text>
+  <text class="small" x="635" y="452" text-anchor="middle">installe Docker, déploie</text>
+  <text class="small" x="635" y="470" text-anchor="middle">les compose db / app / proxy</text>
+  <text class="small" x="635" y="494" text-anchor="middle">→ configuration idempotente</text>
+
+  <rect class="tool" x="780" y="400" width="255" height="150" rx="8"/>
+  <text class="sub" x="907" y="428" text-anchor="middle">Docker / Compose</text>
+  <text class="small" x="907" y="452" text-anchor="middle">isole chaque service dans</text>
+  <text class="small" x="907" y="470" text-anchor="middle">son conteneur</text>
+  <text class="small" x="907" y="494" text-anchor="middle">→ déploiement portable</text>
+
+  <text class="small" x="40" y="660">Flux : Client → (HTTP 80 redirigé HTTPS 443) → NGINX → app Flask :8000 → PostgreSQL :5432.</text>
+  <text class="small" x="40" y="682">Seul le reverse proxy est exposé ; app et base ne sont joignables que sur le réseau privé 10.10.0.0/24.</text>
+</svg>
