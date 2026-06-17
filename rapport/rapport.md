@@ -200,6 +200,7 @@ projet-cloud-computing/
 ├── terraform/              # IaC : VMs, réseau, cloud-init
 ├── ansible/                # provisioning : 4 rôles (common, database, app, reverse_proxy)
 ├── app/                    # application Flask + Dockerfile
+├── local-test/             # Conf NGINX simplifiée pour le test local
 ├── schema/                 # schéma d'architecture
 ├── docker-compose.local.yml # validation locale de la chaîne applicative
 └── rapport/                # ce rapport (source Markdown + PDF)
