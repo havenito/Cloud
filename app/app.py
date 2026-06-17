@@ -2,46 +2,34 @@ import os
 import socket
 import psycopg2
 from flask import Flask, render_template_string
-
+ 
 app = Flask(__name__)
-
-# Paramètres de connexion à la base, injectés via variables d'environnement
-# par docker-compose (voir compose.yml du rôle "app").
+ 
+# infos de connexion à la base (definies dans compose.yml)
 DB_HOST = os.environ.get("DB_HOST", "db")
 DB_PORT = os.environ.get("DB_PORT", "5432")
 DB_NAME = os.environ.get("DB_NAME", "techapp")
 DB_USER = os.environ.get("DB_USER", "techapp")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "changeme")
-
-
+ 
+ 
 def get_connection():
     return psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        connect_timeout=5,
+        host=DB_HOST, port=DB_PORT, dbname=DB_NAME,
+        user=DB_USER, password=DB_PASSWORD, connect_timeout=5
     )
-
-
+ 
+ 
 def init_db():
-    """Crée la table de compteur si elle n'existe pas encore."""
+    # cree la table si elle existe pas encore
     conn = get_connection()
-    try:
-        with conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS visites (
-                    id SERIAL PRIMARY KEY,
-                    vu_le TIMESTAMP DEFAULT NOW()
-                );
-                """
-            )
-    finally:
-        conn.close()
-
-
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS visites (id SERIAL PRIMARY KEY, vu_le TIMESTAMP DEFAULT NOW());")
+    conn.commit()
+    cur.close()
+    conn.close()
+ 
+ 
 PAGE = """
 <!doctype html>
 <html lang="fr">
@@ -69,34 +57,32 @@ PAGE = """
 </body>
 </html>
 """
-
-
+ 
+ 
 @app.route("/")
 def index():
     conn = get_connection()
-    try:
-        with conn, conn.cursor() as cur:
-            cur.execute("INSERT INTO visites DEFAULT VALUES;")
-            cur.execute("SELECT COUNT(*) FROM visites;")
-            count = cur.fetchone()[0]
-    finally:
-        conn.close()
-    return render_template_string(
-        PAGE, count=count, host=socket.gethostname(), db_host=DB_HOST
-    )
-
-
+    cur = conn.cursor()
+    cur.execute("INSERT INTO visites DEFAULT VALUES;")
+    cur.execute("SELECT COUNT(*) FROM visites;")
+    count = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return render_template_string(PAGE, count=count, host=socket.gethostname(), db_host=DB_HOST)
+ 
+ 
 @app.route("/health")
 def health():
-    """Endpoint de santé utilisé par le reverse proxy / la supervision."""
+    # utilisé par le reverse proxy pour checker que l'app repond
     try:
         conn = get_connection()
         conn.close()
         return {"status": "ok"}, 200
-    except Exception as exc:  # noqa: BLE001
-        return {"status": "ko", "error": str(exc)}, 503
-
-
+    except Exception as e:
+        return {"status": "ko", "error": str(e)}, 503
+ 
+ 
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=8000)
