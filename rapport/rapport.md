@@ -1,21 +1,3 @@
----
-title: "Déploiement automatisé d'une application web conteneurisée sur infrastructure virtualisée"
-subtitle: "Projet – Module Cloud Computing (3CLOU)"
-author: "Enzo MARTINEZ — 3INSI, École Hexagone"
-date: "Juin 2026"
-lang: fr
-geometry: margin=2.4cm
-fontsize: 11pt
-mainfont: "DejaVu Sans"
-monofont: "DejaVu Sans Mono"
-colorlinks: true
-linkcolor: "RoyalPurple"
-toc: true
-toc-depth: 2
----
-
-\newpage
-
 # Introduction et contexte
 
 Le sujet part d'une situation que je trouve assez réaliste : une PME héberge une application web interne installée « à la main » sur un seul serveur. Le problème, c'est que ce genre d'installation n'est jamais reproductible. Si le serveur tombe, ou s'il faut remonter l'appli ailleurs, on repart de zéro en espérant se souvenir de toutes les commandes tapées la première fois.
