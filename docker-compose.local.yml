@@ -1,11 +1,3 @@
-# ---------------------------------------------------------------------------
-# Compose "local-test" : sert UNIQUEMENT à valider la chaîne proxy -> app ->
-# base sur ta machine Windows via Docker Desktop, sans passer par les VMs.
-# Les 3 services communiquent par leur nom (réseau Docker par défaut) au lieu
-# des IP privées utilisées en production par les rôles Ansible.
-# Usage :
-#   docker compose -f docker-compose.local.yml up -d --build
-# ---------------------------------------------------------------------------
 services:
   db:
     image: postgres:16
